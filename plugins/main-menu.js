@@ -6,22 +6,33 @@ import { join } from 'path'
 
 let handler = async (m, { conn, usedPrefix, text, command }) => {
     try {
-        let { exp, diamantes, level, role } = global.db.data.users[m.sender]
-        let { min, xp, max } = xpRange(level, global.multiplier)
-        let name = await conn.getName(m.sender)
+        // Asegurarse de que los datos del usuario estén definidos
+        let userData = global.db.data.users[m.sender];
+        if (!userData) {
+            throw new Error('Datos del usuario no encontrados en la base de datos');
+        }
+
+        let { exp, diamantes, level, role } = userData;
+        let { min, xp, max } = xpRange(level, global.multiplier);
+        let name = await conn.getName(m.sender);
         exp = exp || 'Desconocida';
         role = role || 'Aldeano';
 
-        // Aquí obtenemos la mención correcta para WhatsApp
-        const user = `@${m.sender.split('@')[0]}`;
+        // Asegurarse de que m.sender esté definido antes de intentar usarlo
+        const user = m.sender ? `@${m.sender.split('@')[0]}` : '@Desconocido';
 
         const _uptime = process.uptime() * 1000;
         const uptime = clockString(_uptime);
-        let totalreg = Object.keys(global.db.data.users).length
-        let rtotalreg = Object.values(global.db.data.users).filter(user => user.registered == true).length
-        await m.react('🌹')
+        let totalreg = Object.keys(global.db.data.users).length;
+        let rtotalreg = Object.values(global.db.data.users).filter(user => user.registered == true).length;
 
+        // Enviar reacción al mensaje
+        await m.react('🌹');
+
+        // URL de la imagen
         const imageUrl = 'https://files.catbox.moe/bq94um.jpg';
+
+        // Crear el menú que se enviará al usuario
         let menu = `
 🌐 *\`Menú Principal\`*
 ────────────────────────────
@@ -354,25 +365,35 @@ let handler = async (m, { conn, usedPrefix, text, command }) => {
 ╰➤ ${xowner} ${usedPrefix}dsowner
 ╰➤ ${xowner} ${usedPrefix}autoadmin
 > ${club}
-`.trim()
+`;
+
+        // Intentar enviar la imagen con el menú
         await conn.sendMessage(m.chat, {
             image: { url: imageUrl }, // Enviar siempre la imagen especificada
             caption: menu,
-        }, { quoted: null })
+        }, { quoted: null });
+
     } catch (e) {
-        await m.reply(`*✖️ Ocurrió un error al enviar el menú.*\n\n${e}`)
+        // Manejo de errores: mostrar mensaje al usuario y registrar el error
+        console.error(e);
+        await m.reply(`*✖️ Ocurrió un error al enviar el menú.*\n\n${e.message || e}`);
     }
 }
+
+// Configuración del comando
 handler.help = ['menuff'];
 handler.tags = ['main'];
 handler.command = /^(menu|menú|memu|memú|help|info|comandos|2help|menu1.2|ayuda|commands|commandos|cmd)$/i;
 handler.fail = null;
+
 export default handler;
+
+// Función para convertir milisegundos a formato reloj (hh:mm:ss)
 const more = String.fromCharCode(8206)
-const readMore = more.repeat(4001)
+const readMore = more.repeat(4001);
 function clockString(ms) {
-    let h = isNaN(ms) ? '--' : Math.floor(ms / 3600000)
-    let m = isNaN(ms) ? '--' : Math.floor(ms / 60000) % 60
-    let s = isNaN(ms) ? '--' : Math.floor(ms / 1000) % 60
-    return [h, m, s].map(v => v.toString().padStart(2, 0)).join(':')
+    let h = isNaN(ms) ? '--' : Math.floor(ms / 3600000);
+    let m = isNaN(ms) ? '--' : Math.floor(ms / 60000) % 60;
+    let s = isNaN(ms) ? '--' : Math.floor(ms / 1000) % 60;
+    return [h, m, s].map(v => v.toString().padStart(2, 0)).join(':');
 }
